@@ -1,0 +1,53 @@
+name: Daily Commodity Predictions
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install pandas numpy yfinance scikit-learn
+      
+      - name: Restore cached models
+        uses: actions/cache@v4
+        with:
+          path: trained_models/
+          key: models-${{ github.run_number }}
+          restore-keys: models-
+      
+      - name: Run predictions
+        run: python daily_predictions.py
+      
+      - name: Cache trained models
+        uses: actions/cache@v4
+        with:
+          path: trained_models/
+          key: models-${{ github.run_number }}
+      
+      - name: Push predictions to PUBLIC repo
+        run: |
+          git clone https://x-access-token:${{ secrets.PUSH_TOKEN }}@github.com/Bodhi8/commodity-predictor.git public_repo
+          mkdir -p public_repo/predictions
+          cp predictions/latest_predictions.json public_repo/predictions/
+          cd public_repo
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add predictions/
+          git diff --staged --quiet || git commit -m "Update predictions $(date +'%Y-%m-%d %H:%M UTC')"
+          git push

@@ -1,0 +1,78 @@
+<!-- 
+EMBEDDABLE COMMODITY PREDICTIONS WIDGET
+Copy this code to embed on any webpage.
+Just update the PREDICTIONS_URL to point to your JSON file.
+-->
+
+<div id="commodity-widget"></div>
+
+<script>
+(function() {
+    // =================================================================
+    // CONFIGURATION - Update this URL!
+    // =================================================================
+    const PREDICTIONS_URL = 'https://yourusername.github.io/commodity-predictor/predictions/latest_predictions.json';
+    
+    const ICONS = {
+        'Crude Oil WTI': '🛢️', 'Gold': '🥇', 'Silver': '🥈',
+        'Natural Gas': '🔥', 'Copper': '🔶', 'Corn': '🌽', 'Wheat': '🌾'
+    };
+    
+    const styles = `
+        .cw-container { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 100%; }
+        .cw-header { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 15px; border-radius: 12px 12px 0 0; }
+        .cw-header h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .cw-header small { opacity: 0.7; font-size: 0.8rem; }
+        .cw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; padding: 15px; background: #f8fafc; border-radius: 0 0 12px 12px; }
+        .cw-item { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .cw-name { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
+        .cw-price { font-size: 1.2rem; font-weight: 700; color: #0f172a; }
+        .cw-change { font-size: 0.85rem; margin-top: 4px; }
+        .cw-up { color: #22c55e; }
+        .cw-down { color: #ef4444; }
+        .cw-loading { text-align: center; padding: 40px; color: #64748b; }
+    `;
+    
+    const styleEl = document.createElement('style');
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
+    
+    const widget = document.getElementById('commodity-widget');
+    widget.innerHTML = '<div class="cw-container"><div class="cw-loading">Loading predictions...</div></div>';
+    
+    fetch(PREDICTIONS_URL)
+        .then(r => r.json())
+        .then(data => {
+            const updated = new Date(data.generated_at).toLocaleDateString();
+            let html = `
+                <div class="cw-container">
+                    <div class="cw-header">
+                        <h3>📈 Commodity Predictions</h3>
+                        <small>Updated: ${updated}</small>
+                    </div>
+                    <div class="cw-grid">
+            `;
+            
+            for (const [name, info] of Object.entries(data.predictions)) {
+                const pred = info.forecasts['1d'] || info.forecasts['5d'];
+                const change = pred ? pred.change_pct : 0;
+                const changeClass = change >= 0 ? 'cw-up' : 'cw-down';
+                const arrow = change >= 0 ? '↑' : '↓';
+                
+                html += `
+                    <div class="cw-item">
+                        <div class="cw-name">${ICONS[name] || '📊'} ${name}</div>
+                        <div class="cw-price">$${info.current_price.toLocaleString()}</div>
+                        <div class="cw-change ${changeClass}">${arrow} ${Math.abs(change).toFixed(1)}% (1d)</div>
+                    </div>
+                `;
+            }
+            
+            html += '</div></div>';
+            widget.innerHTML = html;
+        })
+        .catch(err => {
+            widget.innerHTML = `<div class="cw-container"><div class="cw-loading" style="color:#ef4444">Error loading data</div></div>`;
+        });
+})();
+</script>

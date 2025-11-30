@@ -34,6 +34,9 @@ jobs:
       - name: Run predictions
         run: python daily_predictions.py
       
+      - name: Track accuracy
+        run: python prediction_tracker.py
+      
       - name: Cache trained models
         uses: actions/cache@v4
         with:
